@@ -6,16 +6,33 @@
 //
 
 import SwiftUI
+import Photos
 
 struct RootView: View {
-    @AppStorage("hasCompletedOnboarding")
-    private var hasCompletedOnboarding = false
+    @State private var photoAuthorizationStatus =
+        PHPhotoLibrary.authorizationStatus(for: .readWrite)
 
     var body: some View {
-        if hasCompletedOnboarding {
-            ContentView()
-        } else {
-            OnboardingView()
+        Group {
+            switch photoAuthorizationStatus {
+            case .authorized, .limited:
+                ContentView()
+
+            default:
+                OnboardingView()
+            }
         }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification
+            )
+        ) { _ in
+            updateAuthorizationStatus()
+        }
+    }
+
+    private func updateAuthorizationStatus() {
+        photoAuthorizationStatus =
+            PHPhotoLibrary.authorizationStatus(for: .readWrite)
     }
 }

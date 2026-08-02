@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import Photos
 
 struct OnboardingView: View {
-    @AppStorage("hasCompletedOnboarding")
-    private var hasCompletedOnboarding = false
+    @AppStorage("hasGrantedPhotoAccess")
+    private var hasGrantedPhotoAccess = false
+
+    @State private var photoAuthorizationStatus: PHAuthorizationStatus = .notDetermined
 
     var body: some View {
         VStack(spacing: 32) {
@@ -24,7 +27,7 @@ struct OnboardingView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Allow access to your photo library\nso we can organize your memories.")
+                Text(descriptionText)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
@@ -32,16 +35,101 @@ struct OnboardingView: View {
             Spacer()
 
             Button {
-                hasCompletedOnboarding = true
+                handlePhotoPermission()
             } label: {
-                Text("Continue")
+                Text(buttonTitle)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .disabled(photoAuthorizationStatus == .restricted)
         }
         .padding(24)
+        .onAppear {
+            updateAuthorizationStatus()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification
+            )
+        ) { _ in
+            updateAuthorizationStatus()
+        }
     }
 
+    private var buttonTitle: String {
+        switch photoAuthorizationStatus {
+        case .denied:
+            return "Open Settings"
+
+        case .restricted:
+            return "Unavailable"
+
+        default:
+            return "Continue"
+        }
+    }
+
+    private var descriptionText: String {
+        switch photoAuthorizationStatus {
+        case .denied:
+            return "Photo access is required.\nEnable it in Settings to continue."
+
+        case .restricted:
+            return "Photo access is restricted.\nPlease check your device settings."
+
+        default:
+            return "Allow access to your photo library\nso we can organize your memories."
+        }
+    }
+
+    private func handlePhotoPermission() {
+        switch photoAuthorizationStatus {
+
+        case .notDetermined:
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+                DispatchQueue.main.async {
+                    updateStatus(status)
+                }
+            }
+
+        case .denied:
+            openSettings()
+
+        case .authorized, .limited:
+            hasGrantedPhotoAccess = true
+
+        case .restricted:
+            break
+
+        @unknown default:
+            break
+        }
+    }
+
+    private func updateAuthorizationStatus() {
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        updateStatus(status)
+    }
+
+    private func updateStatus(_ status: PHAuthorizationStatus) {
+        photoAuthorizationStatus = status
+
+        switch status {
+        case .authorized, .limited:
+            hasGrantedPhotoAccess = true
+
+        default:
+            break
+        }
+    }
+
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+
+        UIApplication.shared.open(url)
+    }
 }
 
 #Preview {

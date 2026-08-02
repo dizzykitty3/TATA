@@ -8,22 +8,25 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("hasCompletedOnboarding")
-    private var hasCompletedOnboarding = false
-
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    #if DEBUG
-                    Button("Reset Onboarding") {
-                        hasCompletedOnboarding = false
+                    Button("Open App Settings") {
+                        openSettings()
                     }
-                    #endif
                 }
             }
             .navigationTitle("Settings")
         }
+    }
+
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+
+        UIApplication.shared.open(url)
     }
 }
 

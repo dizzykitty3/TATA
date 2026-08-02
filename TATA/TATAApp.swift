@@ -9,9 +9,6 @@ import SwiftUI
 
 @main
 struct TATAApp: App {
-    @AppStorage("hasCompletedOnboarding")
-    private var hasCompletedOnboarding = false
-
     var body: some Scene {
         WindowGroup {
             RootView()
