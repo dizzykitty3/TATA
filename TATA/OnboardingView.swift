@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    @AppStorage("hasCompletedOnboarding")
+    private var hasCompletedOnboarding = false
+
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
@@ -29,7 +32,7 @@ struct OnboardingView: View {
             Spacer()
 
             Button {
-                
+                hasCompletedOnboarding = true
             } label: {
                 Text("Continue")
                     .frame(maxWidth: .infinity)
