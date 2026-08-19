@@ -9,6 +9,8 @@ import SwiftUI
 import Photos
 
 struct OnboardingView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
     @AppStorage("hasGrantedPhotoAccess")
     private var hasGrantedPhotoAccess = false
 
@@ -47,12 +49,10 @@ struct OnboardingView: View {
         .onAppear {
             updateAuthorizationStatus()
         }
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: UIApplication.didBecomeActiveNotification
-            )
-        ) { _ in
-            updateAuthorizationStatus()
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                updateAuthorizationStatus()
+            }
         }
     }
 

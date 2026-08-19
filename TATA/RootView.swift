@@ -9,6 +9,8 @@ import SwiftUI
 import Photos
 
 struct RootView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var photoAuthorizationStatus =
         PHPhotoLibrary.authorizationStatus(for: .readWrite)
 
@@ -22,12 +24,10 @@ struct RootView: View {
                 OnboardingView()
             }
         }
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: UIApplication.didBecomeActiveNotification
-            )
-        ) { _ in
-            updateAuthorizationStatus()
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                updateAuthorizationStatus()
+            }
         }
     }
 
