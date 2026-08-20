@@ -24,13 +24,23 @@ struct SwipeView: View {
                     .systemBackground
             )
 
+            if let previous = model.previous {
+                MediaView(
+                    asset: previous
+                )
+                .id(previous.localIdentifier)
+                .opacity(
+                    offset.width > 0 ? 1 : 0
+                )
+            }
+
             if let next = model.next {
                 MediaView(
                     asset: next
                 )
                 .id(next.localIdentifier)
                 .opacity(
-                    offset == .zero ? 0 : 1
+                    offset.width < 0 ? 1 : 0
                 )
             }
 
@@ -53,11 +63,10 @@ struct SwipeView: View {
                 .offset(
                     offset
                 )
-                .gesture(
-                    dragGesture
-                )
             }
         }
+        .contentShape(Rectangle())
+        .gesture(dragGesture)
         .ignoresSafeArea()
     }
 }
@@ -86,6 +95,10 @@ extension SwipeView {
                     next()
 
                 }
+                else if x > 150 {
+                    previous()
+
+                }
                 else {
                     withAnimation {
                         offset = .zero
@@ -95,6 +108,13 @@ extension SwipeView {
     }
 
     private func next() {
+        guard model.next != nil else {
+            withAnimation {
+                offset = .zero
+            }
+            return
+        }
+
         withAnimation {
             offset.width = -500
         }
@@ -106,6 +126,27 @@ extension SwipeView {
 
             model.moveNext()
 
+            offset = .zero
+        }
+    }
+
+    private func previous() {
+        guard model.previous != nil else {
+            withAnimation {
+                offset = .zero
+            }
+            return
+        }
+
+        withAnimation {
+            offset.width = 500
+        }
+
+        DispatchQueue.main.asyncAfter(
+            deadline:
+                .now() + 0.25
+        ) {
+            model.movePrevious()
             offset = .zero
         }
     }

@@ -25,6 +25,9 @@ final class SwipeViewModel: ObservableObject {
     @Published
     var next: PHAsset?
 
+    @Published
+    var previous: PHAsset?
+
     init() {
         let fetchResult = service.fetchAssets()
         assets = (0..<fetchResult.count).map {
@@ -34,9 +37,10 @@ final class SwipeViewModel: ObservableObject {
     }
 
     func load(index: Int) {
-        guard index < assets.count else {
+        guard index >= 0, index < assets.count else {
             current = nil
             next = nil
+            previous = nil
             return
         }
 
@@ -44,22 +48,47 @@ final class SwipeViewModel: ObservableObject {
 
         current = assets[index]
 
+        if index > 0 {
+            previous = assets[index - 1]
+        } else {
+            previous = nil
+        }
+
         if index + 1 < assets.count {
             next = assets[index + 1]
-
-            service.preload(
-                assets: [
-                    assets[index + 1]
-                ]
-            )
         } else {
             next = nil
+        }
+
+        var assetsToPreload: [PHAsset] = []
+        if index > 0 {
+            assetsToPreload.append(assets[index - 1])
+        }
+        if index + 1 < assets.count {
+            assetsToPreload.append(assets[index + 1])
+        }
+        if !assetsToPreload.isEmpty {
+            service.preload(assets: assetsToPreload)
         }
     }
 
     func moveNext() {
+        guard index + 1 < assets.count else {
+            return
+        }
+
         load(
             index: index + 1
+        )
+    }
+
+    func movePrevious() {
+        guard index > 0 else {
+            return
+        }
+
+        load(
+            index: index - 1
         )
     }
 
