@@ -15,6 +15,11 @@ final class PhotoService {
 
     private let manager = PHCachingImageManager()
 
+    private var cachedAssets: [PHAsset] = []
+
+    private let imageCache = NSCache<NSString, UIImage>()
+    private let videoCache = NSCache<NSString, AVAsset>()
+
     private init() {}
 
     func fetchAssets() -> PHFetchResult<PHAsset> {
@@ -37,6 +42,13 @@ final class PhotoService {
         size: CGSize,
         completion: @escaping (UIImage?) -> Void
     ) {
+        let cacheKey = asset.localIdentifier as NSString
+
+        if let image = imageCache.object(forKey: cacheKey) {
+            completion(image)
+            return
+        }
+
         let options = PHImageRequestOptions()
 
         options.deliveryMode = .highQualityFormat
@@ -48,6 +60,9 @@ final class PhotoService {
             contentMode: .aspectFit,
             options: options
         ) { image, _ in
+            if let image {
+                self.imageCache.setObject(image, forKey: cacheKey)
+            }
             completion(image)
         }
     }
@@ -56,6 +71,13 @@ final class PhotoService {
         asset: PHAsset,
         completion: @escaping (AVAsset?) -> Void
     ) {
+        let cacheKey = asset.localIdentifier as NSString
+
+        if let avAsset = videoCache.object(forKey: cacheKey) {
+            completion(avAsset)
+            return
+        }
+
         let options = PHVideoRequestOptions()
 
         options.deliveryMode = .automatic
@@ -65,6 +87,9 @@ final class PhotoService {
             forVideo: asset,
             options: options
         ) { avAsset, _, _ in
+            if let avAsset {
+                self.videoCache.setObject(avAsset, forKey: cacheKey)
+            }
             completion(avAsset)
         }
     }
@@ -87,14 +112,36 @@ final class PhotoService {
     func preload(
         assets: [PHAsset]
     ) {
-        manager.startCachingImages(
-            for: assets,
-            targetSize: CGSize(
-                width: 1000,
-                height: 1000
-            ),
+        let targetSize = CGSize(
+            width: 1200,
+            height: 1200
+        )
+
+        manager.stopCachingImages(
+            for: cachedAssets,
+            targetSize: targetSize,
             contentMode: .aspectFit,
             options: nil
         )
+
+        manager.startCachingImages(
+            for: assets,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: nil
+        )
+
+        cachedAssets = assets
+
+        for asset in assets {
+            if asset.mediaType == .video {
+                requestVideo(asset: asset) { _ in }
+            } else {
+                requestImage(
+                    asset: asset,
+                    size: targetSize
+                ) { _ in }
+            }
+        }
     }
 }

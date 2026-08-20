@@ -10,6 +10,9 @@ import Photos
 
 struct SwipeView: View {
 
+    private let swipeThreshold: CGFloat = 100
+    private let transitionDuration: Double = 0.18
+
     @StateObject
     private var model =
         SwipeViewModel()
@@ -26,7 +29,8 @@ struct SwipeView: View {
 
             if let previous = model.previous {
                 MediaView(
-                    asset: previous
+                    asset: previous,
+                    isCurrent: false
                 )
                 .id(previous.localIdentifier)
                 .opacity(
@@ -36,7 +40,8 @@ struct SwipeView: View {
 
             if let next = model.next {
                 MediaView(
-                    asset: next
+                    asset: next,
+                    isCurrent: false
                 )
                 .id(next.localIdentifier)
                 .opacity(
@@ -46,7 +51,8 @@ struct SwipeView: View {
 
             if let current = model.current {
                 MediaView(
-                    asset: current
+                    asset: current,
+                    isCurrent: true
                 )
                 .id(current.localIdentifier)
                 .background {
@@ -87,15 +93,15 @@ extension SwipeView {
                 let y =
                     value.translation.height
 
-                if y < -150 {
+                if y < -swipeThreshold {
                     delete()
 
                 }
-                else if x < -150 {
+                else if x < -swipeThreshold {
                     next()
 
                 }
-                else if x > 150 {
+                else if x > swipeThreshold {
                     previous()
 
                 }
@@ -115,13 +121,12 @@ extension SwipeView {
             return
         }
 
-        withAnimation {
+        withAnimation(.easeOut(duration: transitionDuration)) {
             offset.width = -500
         }
 
         DispatchQueue.main.asyncAfter(
-            deadline:
-                .now() + 0.25
+            deadline: .now() + transitionDuration
         ) {
 
             model.moveNext()
@@ -138,13 +143,12 @@ extension SwipeView {
             return
         }
 
-        withAnimation {
+        withAnimation(.easeOut(duration: transitionDuration)) {
             offset.width = 500
         }
 
         DispatchQueue.main.asyncAfter(
-            deadline:
-                .now() + 0.25
+            deadline: .now() + transitionDuration
         ) {
             model.movePrevious()
             offset = .zero

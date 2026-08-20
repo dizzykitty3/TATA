@@ -13,6 +13,8 @@ import Combine
 final class SwipeViewModel: ObservableObject {
     private let service = PhotoService.shared
 
+    private let preloadCount = 5
+
     // Keep a local snapshot so deleting the current asset cannot make the
     // next asset's index shift underneath us.
     private var assets: [PHAsset]
@@ -60,15 +62,18 @@ final class SwipeViewModel: ObservableObject {
             next = nil
         }
 
-        var assetsToPreload: [PHAsset] = []
-        if index > 0 {
-            assetsToPreload.append(assets[index - 1])
-        }
-        if index + 1 < assets.count {
-            assetsToPreload.append(assets[index + 1])
-        }
+        // Keep a small, bounded cache window around the current item. The
+        // order prioritizes both directions and never exceeds five assets.
+        let assetsToPreload = (1...preloadCount)
+            .flatMap { distance in
+                [index + distance, index - distance]
+            }
+            .filter { $0 >= 0 && $0 < assets.count }
+            .prefix(preloadCount)
+            .map { assets[$0] }
+
         if !assetsToPreload.isEmpty {
-            service.preload(assets: assetsToPreload)
+            service.preload(assets: Array(assetsToPreload))
         }
     }
 
