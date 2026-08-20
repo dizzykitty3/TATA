@@ -1,14 +1,7 @@
-//
-//  PhotoService.swift
-//  TATA
-//
-//  Created by Theo on 8/20/26.
-//
-
 import Foundation
 import Photos
-import SwiftUI
-import AVKit
+import UIKit
+import AVFoundation
 
 enum PhotoDeletionResult {
     case success
@@ -20,9 +13,7 @@ final class PhotoService {
     static let shared = PhotoService()
 
     private let manager = PHCachingImageManager()
-
     private var cachedAssets: [PHAsset] = []
-
     private let imageCache = NSCache<NSString, UIImage>()
     private let videoCache = NSCache<NSString, AVAsset>()
 
@@ -30,17 +21,11 @@ final class PhotoService {
 
     func fetchAssets() -> PHFetchResult<PHAsset> {
         let options = PHFetchOptions()
-
         options.sortDescriptors = [
-            NSSortDescriptor(
-                key: "creationDate",
-                ascending: false
-            )
+            NSSortDescriptor(key: "creationDate", ascending: false)
         ]
 
-        return PHAsset.fetchAssets(
-            with: options
-        )
+        return PHAsset.fetchAssets(with: options)
     }
 
     func requestImage(
@@ -56,7 +41,6 @@ final class PhotoService {
         }
 
         let options = PHImageRequestOptions()
-
         options.deliveryMode = .highQualityFormat
         options.isNetworkAccessAllowed = true
 
@@ -85,7 +69,6 @@ final class PhotoService {
         }
 
         let options = PHVideoRequestOptions()
-
         options.deliveryMode = .automatic
         options.isNetworkAccessAllowed = true
 
@@ -104,26 +87,20 @@ final class PhotoService {
         assets: [PHAsset],
         completion: @escaping (PhotoDeletionResult) -> Void
     ) {
-        PHPhotoLibrary.shared()
-            .performChanges {
-                PHAssetChangeRequest
-                    .deleteAssets(
-                        assets as NSArray
-                    )
-            } completionHandler: { success, error in
-                if success {
-                    completion(.success)
-                } else if Self.isUserCancelled(error) {
-                    completion(.cancelled)
-                } else {
-                    completion(.failure)
-                }
+        PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.deleteAssets(assets as NSArray)
+        } completionHandler: { success, error in
+            if success {
+                completion(.success)
+            } else if Self.isUserCancelled(error) {
+                completion(.cancelled)
+            } else {
+                completion(.failure)
             }
+        }
     }
 
-    private static func isUserCancelled(
-        _ error: Error?
-    ) -> Bool {
+    private static func isUserCancelled(_ error: Error?) -> Bool {
         guard let error else {
             return false
         }
@@ -138,13 +115,8 @@ final class PhotoService {
             && nsError.code == PHPhotosError.userCancelled.rawValue
     }
 
-    func preload(
-        assets: [PHAsset]
-    ) {
-        let targetSize = CGSize(
-            width: 1200,
-            height: 1200
-        )
+    func preload(assets: [PHAsset]) {
+        let targetSize = CGSize(width: 1200, height: 1200)
 
         manager.stopCachingImages(
             for: cachedAssets,
@@ -152,7 +124,6 @@ final class PhotoService {
             contentMode: .aspectFit,
             options: nil
         )
-
         manager.startCachingImages(
             for: assets,
             targetSize: targetSize,
@@ -163,10 +134,7 @@ final class PhotoService {
         cachedAssets = assets
 
         for asset in assets {
-            requestImage(
-                asset: asset,
-                size: targetSize
-            ) { _ in }
+            requestImage(asset: asset, size: targetSize) { _ in }
 
             if asset.mediaType == .video {
                 requestVideo(asset: asset) { _ in }

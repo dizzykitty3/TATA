@@ -1,15 +1,7 @@
-//
-//  SwipeView.swift
-//  TATA
-//
-//  Created by Theo on 8/19/26.
-//
-
 import SwiftUI
 import Photos
 
 struct SwipeView: View {
-
     let deletionManager: DeletionManager
 
     private let swipeThreshold: CGFloat = 100
@@ -17,6 +9,8 @@ struct SwipeView: View {
 
     @StateObject
     private var model: SwipeViewModel
+
+    @State private var offset: CGSize = .zero
 
     init(deletionManager: DeletionManager) {
         self.deletionManager = deletionManager
@@ -27,47 +21,24 @@ struct SwipeView: View {
         )
     }
 
-    @State private var offset:
-        CGSize = .zero
-
     var body: some View {
         ZStack {
-            Color(
-                uiColor:
-                    .systemBackground
-            )
+            Color(uiColor: .systemBackground)
 
             if let next = model.next {
-                MediaView(
-                    asset: next,
-                    isCurrent: false
-                )
-                .id(next.localIdentifier)
-                .opacity(
-                    offset == .zero ? 0 : 1
-                )
+                MediaView(asset: next, isCurrent: false)
+                    .id(next.localIdentifier)
+                    .opacity(offset == .zero ? 0 : 1)
             }
 
             if let current = model.current {
-                MediaView(
-                    asset: current,
-                    isCurrent: true
-                )
-                .id(current.localIdentifier)
-                .background {
-                    Color(
-                        uiColor:
-                            .systemBackground
-                    )
-                    .opacity(
-                        offset == .zero
-                        ? 1
-                        : 0
-                    )
-                }
-                .offset(
-                    offset
-                )
+                MediaView(asset: current, isCurrent: true)
+                    .id(current.localIdentifier)
+                    .background {
+                        Color(uiColor: .systemBackground)
+                            .opacity(offset == .zero ? 1 : 0)
+                    }
+                    .offset(offset)
             } else {
                 ContentUnavailableView(
                     "No Media",
@@ -82,33 +53,21 @@ struct SwipeView: View {
         .gesture(dragGesture)
         .ignoresSafeArea()
     }
-}
 
-extension SwipeView {
-    private var dragGesture:
-        some Gesture {
-
+    private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                offset =
-                    value.translation
+                offset = value.translation
             }
             .onEnded { value in
-                let x =
-                    value.translation.width
-
-                let y =
-                    value.translation.height
+                let x = value.translation.width
+                let y = value.translation.height
 
                 if y < -swipeThreshold {
                     delete()
-
-                }
-                else if x < -swipeThreshold {
+                } else if x < -swipeThreshold {
                     next()
-
-                }
-                else {
+                } else {
                     withAnimation {
                         offset = .zero
                     }
@@ -131,9 +90,7 @@ extension SwipeView {
         DispatchQueue.main.asyncAfter(
             deadline: .now() + transitionDuration
         ) {
-
             model.moveNext()
-
             offset = .zero
         }
     }
@@ -153,7 +110,5 @@ extension SwipeView {
 }
 
 #Preview {
-    SwipeView(
-        deletionManager: DeletionManager()
-    )
+    SwipeView(deletionManager: DeletionManager())
 }
