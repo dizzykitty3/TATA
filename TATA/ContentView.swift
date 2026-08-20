@@ -11,7 +11,7 @@ struct ContentView: View {
     var body: some View {
         TabView {
             Tab("Swipe", systemImage: "hand.draw") {
-                EmptyView()
+                SwipeView()
             }
 
             Tab("Date", systemImage: "calendar") {
