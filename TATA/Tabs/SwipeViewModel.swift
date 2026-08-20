@@ -10,8 +10,45 @@ import Photos
 import Combine
 
 @MainActor
+final class DeletionManager: ObservableObject {
+    @Published
+    private(set) var pendingAssets: [PHAsset] = []
+
+    func add(_ asset: PHAsset) {
+        guard !pendingAssets.contains(where: {
+            $0.localIdentifier == asset.localIdentifier
+        }) else {
+            return
+        }
+
+        pendingAssets.append(asset)
+    }
+
+    func deleteAll(
+        completion: @escaping (Bool) -> Void
+    ) {
+        guard !pendingAssets.isEmpty else {
+            completion(true)
+            return
+        }
+
+        PhotoService.shared.delete(
+            assets: pendingAssets
+        ) { success in
+            Task { @MainActor in
+                if success {
+                    self.pendingAssets.removeAll()
+                }
+                completion(success)
+            }
+        }
+    }
+}
+
+@MainActor
 final class SwipeViewModel: ObservableObject {
     private let service = PhotoService.shared
+    private let deletionManager: DeletionManager
 
     private let preloadCount = 5
 
@@ -27,13 +64,17 @@ final class SwipeViewModel: ObservableObject {
     @Published
     var next: PHAsset?
 
-    @Published
-    var previous: PHAsset?
+    init(deletionManager: DeletionManager) {
+        self.deletionManager = deletionManager
 
-    init() {
         let fetchResult = service.fetchAssets()
+        let pendingIdentifiers = Set(
+            deletionManager.pendingAssets.map(\.localIdentifier)
+        )
         assets = (0..<fetchResult.count).map {
             fetchResult.object(at: $0)
+        }.filter {
+            !pendingIdentifiers.contains($0.localIdentifier)
         }
         load(index: 0)
     }
@@ -42,7 +83,6 @@ final class SwipeViewModel: ObservableObject {
         guard index >= 0, index < assets.count else {
             current = nil
             next = nil
-            previous = nil
             return
         }
 
@@ -50,24 +90,15 @@ final class SwipeViewModel: ObservableObject {
 
         current = assets[index]
 
-        if index > 0 {
-            previous = assets[index - 1]
-        } else {
-            previous = nil
-        }
-
         if index + 1 < assets.count {
             next = assets[index + 1]
         } else {
             next = nil
         }
 
-        // Keep a small, bounded cache window around the current item. The
-        // order prioritizes both directions and never exceeds five assets.
+        // Keep a small, bounded cache window ahead of the current item.
         let assetsToPreload = (1...preloadCount)
-            .flatMap { distance in
-                [index + distance, index - distance]
-            }
+            .map { index + $0 }
             .filter { $0 >= 0 && $0 < assets.count }
             .prefix(preloadCount)
             .map { assets[$0] }
@@ -87,43 +118,20 @@ final class SwipeViewModel: ObservableObject {
         )
     }
 
-    func movePrevious() {
-        guard index > 0 else {
-            return
-        }
-
-        load(
-            index: index - 1
-        )
-    }
-
-    func deleteCurrent(
-        completion: @escaping () -> Void
-    ) {
+    func markCurrentForDeletion() {
         guard let current else {
             return
         }
 
-        service.delete(
-            asset: current
-        ) { success in
-            Task { @MainActor in
-                guard success else {
-                    completion()
-                    return
-                }
+        deletionManager.add(current)
 
-                if let deletedIndex = self.assets.firstIndex(
-                    where: { $0.localIdentifier == current.localIdentifier }
-                ) {
-                    self.assets.remove(at: deletedIndex)
-                }
-
-                // The item that was after the deleted asset now occupies the
-                // same index. At the end, load() clears the current item.
-                self.load(index: self.index)
-                completion()
-            }
+        if let deletedIndex = assets.firstIndex(
+            where: { $0.localIdentifier == current.localIdentifier }
+        ) {
+            assets.remove(at: deletedIndex)
         }
+
+        // The next item now occupies the same index in the local queue.
+        load(index: index)
     }
 }

@@ -95,14 +95,14 @@ final class PhotoService {
     }
 
     func delete(
-        asset: PHAsset,
+        assets: [PHAsset],
         completion: @escaping (Bool) -> Void
     ) {
         PHPhotoLibrary.shared()
             .performChanges {
                 PHAssetChangeRequest
                     .deleteAssets(
-                        [asset] as NSArray
+                        assets as NSArray
                     )
             } completionHandler: { success, _ in
                 completion(success)
@@ -134,13 +134,13 @@ final class PhotoService {
         cachedAssets = assets
 
         for asset in assets {
+            requestImage(
+                asset: asset,
+                size: targetSize
+            ) { _ in }
+
             if asset.mediaType == .video {
                 requestVideo(asset: asset) { _ in }
-            } else {
-                requestImage(
-                    asset: asset,
-                    size: targetSize
-                ) { _ in }
             }
         }
     }

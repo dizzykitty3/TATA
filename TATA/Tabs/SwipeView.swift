@@ -10,12 +10,22 @@ import Photos
 
 struct SwipeView: View {
 
+    let deletionManager: DeletionManager
+
     private let swipeThreshold: CGFloat = 100
     private let transitionDuration: Double = 0.18
 
     @StateObject
-    private var model =
-        SwipeViewModel()
+    private var model: SwipeViewModel
+
+    init(deletionManager: DeletionManager) {
+        self.deletionManager = deletionManager
+        _model = StateObject(
+            wrappedValue: SwipeViewModel(
+                deletionManager: deletionManager
+            )
+        )
+    }
 
     @State private var offset:
         CGSize = .zero
@@ -27,17 +37,6 @@ struct SwipeView: View {
                     .systemBackground
             )
 
-            if let previous = model.previous {
-                MediaView(
-                    asset: previous,
-                    isCurrent: false
-                )
-                .id(previous.localIdentifier)
-                .opacity(
-                    offset.width > 0 ? 1 : 0
-                )
-            }
-
             if let next = model.next {
                 MediaView(
                     asset: next,
@@ -45,7 +44,7 @@ struct SwipeView: View {
                 )
                 .id(next.localIdentifier)
                 .opacity(
-                    offset.width < 0 ? 1 : 0
+                    offset == .zero ? 0 : 1
                 )
             }
 
@@ -101,10 +100,6 @@ extension SwipeView {
                     next()
 
                 }
-                else if x > swipeThreshold {
-                    previous()
-
-                }
                 else {
                     withAnimation {
                         offset = .zero
@@ -135,37 +130,22 @@ extension SwipeView {
         }
     }
 
-    private func previous() {
-        guard model.previous != nil else {
-            withAnimation {
-                offset = .zero
-            }
-            return
-        }
-
-        withAnimation(.easeOut(duration: transitionDuration)) {
-            offset.width = 500
-        }
-
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + transitionDuration
-        ) {
-            model.movePrevious()
-            offset = .zero
-        }
-    }
-
     private func delete() {
         withAnimation {
             offset.height = -500
         }
 
-        model.deleteCurrent {
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + transitionDuration
+        ) {
+            model.markCurrentForDeletion()
             offset = .zero
         }
     }
 }
 
 #Preview {
-    SwipeView()
+    SwipeView(
+        deletionManager: DeletionManager()
+    )
 }
