@@ -10,6 +10,12 @@ import Photos
 import SwiftUI
 import AVKit
 
+enum PhotoDeletionResult {
+    case success
+    case cancelled
+    case failure
+}
+
 final class PhotoService {
     static let shared = PhotoService()
 
@@ -96,7 +102,7 @@ final class PhotoService {
 
     func delete(
         assets: [PHAsset],
-        completion: @escaping (Bool) -> Void
+        completion: @escaping (PhotoDeletionResult) -> Void
     ) {
         PHPhotoLibrary.shared()
             .performChanges {
@@ -104,9 +110,32 @@ final class PhotoService {
                     .deleteAssets(
                         assets as NSArray
                     )
-            } completionHandler: { success, _ in
-                completion(success)
+            } completionHandler: { success, error in
+                if success {
+                    completion(.success)
+                } else if Self.isUserCancelled(error) {
+                    completion(.cancelled)
+                } else {
+                    completion(.failure)
+                }
             }
+    }
+
+    private static func isUserCancelled(
+        _ error: Error?
+    ) -> Bool {
+        guard let error else {
+            return false
+        }
+
+        if let photosError = error as? PHPhotosError,
+           photosError.code == .userCancelled {
+            return true
+        }
+
+        let nsError = error as NSError
+        return nsError.domain == "PHPhotosErrorDomain"
+            && nsError.code == PHPhotosError.userCancelled.rawValue
     }
 
     func preload(

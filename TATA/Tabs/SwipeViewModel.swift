@@ -25,21 +25,21 @@ final class DeletionManager: ObservableObject {
     }
 
     func deleteAll(
-        completion: @escaping (Bool) -> Void
+        completion: @escaping (PhotoDeletionResult) -> Void
     ) {
         guard !pendingAssets.isEmpty else {
-            completion(true)
+            completion(.success)
             return
         }
 
         PhotoService.shared.delete(
             assets: pendingAssets
-        ) { success in
+        ) { result in
             Task { @MainActor in
-                if success {
+                if case .success = result {
                     self.pendingAssets.removeAll()
                 }
-                completion(success)
+                completion(result)
             }
         }
     }

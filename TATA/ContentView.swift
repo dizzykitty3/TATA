@@ -128,12 +128,17 @@ struct PendingDeletionSheet: View {
     private func deletePendingAssets() {
         isDeleting = true
 
-        deletionManager.deleteAll { success in
+        deletionManager.deleteAll { result in
             isDeleting = false
 
-            if success {
+            switch result {
+            case .success:
                 dismiss()
-            } else {
+
+            case .cancelled:
+                break
+
+            case .failure:
                 errorMessage = "The selected media could not be deleted."
             }
         }

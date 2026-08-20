@@ -68,6 +68,14 @@ struct SwipeView: View {
                 .offset(
                     offset
                 )
+            } else {
+                ContentUnavailableView(
+                    "No Media",
+                    systemImage: "photo.on.rectangle.angled",
+                    description: Text(
+                        "Your photo library doesn't contain any media."
+                    )
+                )
             }
         }
         .contentShape(Rectangle())

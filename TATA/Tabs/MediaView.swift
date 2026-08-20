@@ -95,7 +95,7 @@ struct VideoThumbnailView: View {
         .sheet(isPresented: $isShowingPlayer) {
             NavigationStack {
                 VideoPlayerSheet(asset: asset)
-                    .navigationTitle("Video playback")
+                    .navigationTitle("Video Playback")
                     .navigationBarTitleDisplayMode(.inline)
             }
         }
