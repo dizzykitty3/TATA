@@ -3,7 +3,7 @@ import Photos
 
 struct VideoThumbnailView: View {
     let asset: PHAsset
-    let isCurrent: Bool
+    let showsPlaybackButton: Bool
 
     @State private var isShowingPlayer = false
 
@@ -11,20 +11,10 @@ struct VideoThumbnailView: View {
         ZStack {
             ImageView(asset: asset)
 
-            if isCurrent {
-                Button {
+            if showsPlaybackButton {
+                MediaPlayButton(title: "Video") {
                     isShowingPlayer = true
-                } label: {
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 64))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
-                        .shadow(
-                            color: .black.opacity(0.4),
-                            radius: 8
-                        )
                 }
-                .buttonStyle(.plain)
             }
         }
         .sheet(isPresented: $isShowingPlayer) {

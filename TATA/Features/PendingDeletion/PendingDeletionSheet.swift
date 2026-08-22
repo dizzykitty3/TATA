@@ -25,7 +25,7 @@ struct PendingDeletionSheet: View {
                             deletionManager.pendingAssets,
                             id: \.localIdentifier
                         ) { asset in
-                            MediaView(asset: asset, isCurrent: false)
+                            MediaView(asset: asset, showsPlaybackButton: true)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 150)
                                 .clipped()

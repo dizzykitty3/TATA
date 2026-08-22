@@ -2,6 +2,11 @@ import SwiftUI
 import Photos
 
 struct SwipeView: View {
+    private enum DragAxis {
+        case horizontal
+        case vertical
+    }
+
     let deletionManager: DeletionManager
 
     private let swipeThreshold: CGFloat = 100
@@ -11,6 +16,23 @@ struct SwipeView: View {
     private var model: SwipeViewModel
 
     @State private var offset: CGSize = .zero
+    @State private var dragAxis: DragAxis?
+
+    private var transitionProgress: Double {
+        guard let dragAxis else {
+            return 0
+        }
+
+        let distance: CGFloat
+        switch dragAxis {
+        case .horizontal:
+            distance = abs(offset.width)
+        case .vertical:
+            distance = abs(offset.height)
+         }
+
+        return min(max(Double(distance / 500), 0), 1)
+    }
 
     init(deletionManager: DeletionManager) {
         self.deletionManager = deletionManager
@@ -25,27 +47,53 @@ struct SwipeView: View {
         ZStack {
             Color(uiColor: .systemBackground)
 
+            if let previous = model.previous {
+                MediaView(asset: previous, showsPlaybackButton: false)
+                    .id(previous.localIdentifier)
+                    .opacity(
+                        dragAxis == .horizontal && offset.width > 0
+                            ? transitionProgress
+                            : 0
+                    )
+            }
+
             if let next = model.next {
-                MediaView(asset: next, isCurrent: false)
+                MediaView(asset: next, showsPlaybackButton: false)
                     .id(next.localIdentifier)
-                    .opacity(offset == .zero ? 0 : 1)
+                    .opacity(
+                        dragAxis == .vertical
+                            || (dragAxis == .horizontal && offset.width < 0)
+                            ? transitionProgress
+                            : 0
+                    )
             }
 
             if let current = model.current {
-                MediaView(asset: current, isCurrent: true)
+                MediaView(asset: current, showsPlaybackButton: true)
                     .id(current.localIdentifier)
                     .background {
                         Color(uiColor: .systemBackground)
                             .opacity(offset == .zero ? 1 : 0)
                     }
                     .offset(offset)
+                    .opacity(1 - transitionProgress)
             } else {
                 ContentUnavailableView(
                     "No Media",
                     systemImage: "photo.on.rectangle.angled",
                     description: Text(
-                        "Your photo library doesn't contain any media."
+                        model.previous == nil
+                            ? "Your photo library doesn't contain any media."
+                            : "You've reached the end of your media."
                     )
+                )
+                .offset(
+                    model.previous == nil ? .zero : offset
+                )
+                .opacity(
+                    model.previous == nil
+                        ? 1
+                        : 1 - transitionProgress
                 )
             }
         }
@@ -57,29 +105,65 @@ struct SwipeView: View {
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                offset = value.translation
+                if dragAxis == nil {
+                    let horizontalDistance = abs(value.translation.width)
+                    let verticalDistance = abs(value.translation.height)
+
+                    if max(horizontalDistance, verticalDistance) > 8 {
+                        dragAxis = horizontalDistance >= verticalDistance
+                            ? .horizontal
+                            : .vertical
+                    }
+                }
+
+                if let dragAxis {
+                    switch dragAxis {
+                    case .horizontal:
+                        offset = CGSize(
+                            width: value.translation.width,
+                            height: 0
+                        )
+                    case .vertical:
+                        offset = CGSize(
+                            width: 0,
+                            height: value.translation.height
+                        )
+                    }
+                } else {
+                    offset = value.translation
+                }
             }
             .onEnded { value in
                 let x = value.translation.width
                 let y = value.translation.height
 
-                if y < -swipeThreshold {
+                guard let dragAxis else {
+                    resetDrag()
+                    return
+                }
+
+                if dragAxis == .vertical, y < -swipeThreshold {
                     delete()
-                } else if x < -swipeThreshold {
+                } else if dragAxis == .horizontal, x < -swipeThreshold {
                     next()
+                } else if dragAxis == .horizontal, x > swipeThreshold {
+                    previous()
                 } else {
-                    withAnimation {
-                        offset = .zero
-                    }
+                    resetDrag()
                 }
             }
     }
 
+    private func resetDrag() {
+        withAnimation {
+            offset = .zero
+        }
+        dragAxis = nil
+    }
+
     private func next() {
-        guard model.next != nil else {
-            withAnimation {
-                offset = .zero
-            }
+        guard model.current != nil else {
+            resetDrag()
             return
         }
 
@@ -92,6 +176,26 @@ struct SwipeView: View {
         ) {
             model.moveNext()
             offset = .zero
+            dragAxis = nil
+        }
+    }
+
+    private func previous() {
+        guard model.previous != nil else {
+            resetDrag()
+            return
+        }
+
+        withAnimation(.easeOut(duration: transitionDuration)) {
+            offset.width = 500
+        }
+
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + transitionDuration
+        ) {
+            model.movePrevious()
+            offset = .zero
+            dragAxis = nil
         }
     }
 
@@ -105,6 +209,7 @@ struct SwipeView: View {
         ) {
             model.markCurrentForDeletion()
             offset = .zero
+            dragAxis = nil
         }
     }
 }

@@ -57,6 +57,24 @@ final class PhotoService {
         }
     }
 
+    func requestLivePhoto(
+        asset: PHAsset,
+        completion: @escaping (PHLivePhoto?) -> Void
+    ) {
+        let options = PHLivePhotoRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+
+        manager.requestLivePhoto(
+            for: asset,
+            targetSize: CGSize(width: 1200, height: 1200),
+            contentMode: .aspectFit,
+            options: options
+        ) { livePhoto, _ in
+            completion(livePhoto)
+        }
+    }
+
     func requestVideo(
         asset: PHAsset,
         completion: @escaping (AVAsset?) -> Void

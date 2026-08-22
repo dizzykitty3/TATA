@@ -17,6 +17,9 @@ final class SwipeViewModel: ObservableObject {
     @Published
     var next: PHAsset?
 
+    @Published
+    var previous: PHAsset?
+
     init(deletionManager: DeletionManager) {
         self.deletionManager = deletionManager
 
@@ -35,14 +38,26 @@ final class SwipeViewModel: ObservableObject {
     }
 
     func load(index: Int) {
-        guard index >= 0, index < assets.count else {
+        guard index >= 0 else {
+            return
+        }
+
+        if index >= assets.count {
+            self.index = index
             current = nil
             next = nil
+            previous = assets.last
             return
         }
 
         self.index = index
         current = assets[index]
+
+        if index > 0 {
+            previous = assets[index - 1]
+        } else {
+            previous = nil
+        }
 
         if index + 1 < assets.count {
             next = assets[index + 1]
@@ -51,7 +66,9 @@ final class SwipeViewModel: ObservableObject {
         }
 
         let assetsToPreload = (1...preloadCount)
-            .map { index + $0 }
+            .flatMap { distance in
+                [index + distance, index - distance]
+            }
             .filter { $0 >= 0 && $0 < assets.count }
             .prefix(preloadCount)
             .map { assets[$0] }
@@ -62,11 +79,19 @@ final class SwipeViewModel: ObservableObject {
     }
 
     func moveNext() {
-        guard index + 1 < assets.count else {
+        guard index < assets.count else {
             return
         }
 
         load(index: index + 1)
+    }
+
+    func movePrevious() {
+        guard index > 0 else {
+            return
+        }
+
+        load(index: index - 1)
     }
 
     func markCurrentForDeletion() {
