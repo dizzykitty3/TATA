@@ -7,13 +7,11 @@ struct SwipeView: View {
         case vertical
     }
 
-    let deletionManager: DeletionManager
-
     private let swipeThreshold: CGFloat = 100
     private let transitionDuration: Double = 0.18
 
-    @StateObject
-    private var model: SwipeViewModel
+    @ObservedObject
+    var model: SwipeViewModel
 
     @State private var offset: CGSize = .zero
     @State private var dragAxis: DragAxis?
@@ -34,22 +32,12 @@ struct SwipeView: View {
         return min(max(Double(distance / 500), 0), 1)
     }
 
-    init(deletionManager: DeletionManager) {
-        self.deletionManager = deletionManager
-        _model = StateObject(
-            wrappedValue: SwipeViewModel(
-                deletionManager: deletionManager
-            )
-        )
+    init(model: SwipeViewModel) {
+        self.model = model
     }
 
     var body: some View {
         GeometryReader { proxy in
-            let bottomInset = deletionManager.pendingAssets.isEmpty
-                ? 0
-                : PendingDeletionLayout.reservedBottomInset
-            let mediaHeight = max(proxy.size.height - bottomInset, 0)
-
             ZStack {
                 Color(uiColor: .systemBackground)
 
@@ -114,11 +102,11 @@ struct SwipeView: View {
             }
             .frame(
                 width: proxy.size.width,
-                height: mediaHeight
+                height: proxy.size.height
             )
             .position(
                 x: proxy.size.width / 2,
-                y: mediaHeight / 2
+                y: proxy.size.height / 2
             )
             .contentShape(Rectangle())
             .gesture(dragGesture)
@@ -239,5 +227,5 @@ struct SwipeView: View {
 }
 
 #Preview {
-    SwipeView(deletionManager: DeletionManager())
+    ContentView()
 }

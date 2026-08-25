@@ -94,6 +94,33 @@ final class SwipeViewModel: ObservableObject {
         load(index: index - 1)
     }
 
+    func undoLastDeletion() {
+        guard deletionManager.undoLast() != nil else {
+            return
+        }
+
+        let currentIdentifier = current?.localIdentifier
+        let fetchResult = service.fetchAssets()
+        let pendingIdentifiers = Set(
+            deletionManager.pendingAssets.map(\.localIdentifier)
+        )
+
+        assets = (0..<fetchResult.count).map {
+            fetchResult.object(at: $0)
+        }.filter {
+            !pendingIdentifiers.contains($0.localIdentifier)
+        }
+
+        if let currentIdentifier,
+           let currentIndex = assets.firstIndex(
+                where: { $0.localIdentifier == currentIdentifier }
+           ) {
+            load(index: currentIndex)
+        } else {
+            load(index: min(index, max(assets.count - 1, 0)))
+        }
+    }
+
     func markCurrentForDeletion() {
         guard let current else {
             return

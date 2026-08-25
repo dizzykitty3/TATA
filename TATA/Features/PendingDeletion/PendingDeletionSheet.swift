@@ -2,8 +2,8 @@ import SwiftUI
 import Photos
 
 enum PendingDeletionLayout {
-    static let buttonBottomInset: CGFloat = 58
-    static let reservedBottomInset: CGFloat = 102
+    static let buttonBottomInset: CGFloat = 72
+    static let buttonHeight: CGFloat = 36
     static let gridSpacing: CGFloat = 2
     static let gridTargetSize = CGSize(width: 600, height: 600)
 }
@@ -65,8 +65,10 @@ struct PendingDeletionSheet: View {
                         .padding(.horizontal, 28)
                         .padding(.vertical, 10)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.capsule)
                 .tint(.red)
+                .foregroundStyle(.white)
                 .disabled(isDeleting)
                 .padding(.bottom, 16)
             }

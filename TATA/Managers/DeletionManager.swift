@@ -17,6 +17,15 @@ final class DeletionManager: ObservableObject {
         pendingAssets.append(asset)
     }
 
+    @discardableResult
+    func undoLast() -> PHAsset? {
+        guard !pendingAssets.isEmpty else {
+            return nil
+        }
+
+        return pendingAssets.removeLast()
+    }
+
     func deleteAll(
         completion: @escaping (PhotoDeletionResult) -> Void
     ) {
