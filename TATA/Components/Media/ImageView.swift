@@ -3,15 +3,27 @@ import Photos
 
 struct ImageView: View {
     let asset: PHAsset
+    let targetSize: CGSize
+    let contentMode: ContentMode
 
     @State private var image: UIImage?
+
+    init(
+        asset: PHAsset,
+        targetSize: CGSize = PHImageManagerMaximumSize,
+        contentMode: ContentMode = .fit
+    ) {
+        self.asset = asset
+        self.targetSize = targetSize
+        self.contentMode = contentMode
+    }
 
     var body: some View {
         Group {
             if let image {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: contentMode)
             } else {
                 ProgressView()
             }
@@ -19,7 +31,7 @@ struct ImageView: View {
         .task {
             PhotoService.shared.requestImage(
                 asset: asset,
-                size: CGSize(width: 1200, height: 1200)
+                size: targetSize
             ) {
                 image = $0
             }

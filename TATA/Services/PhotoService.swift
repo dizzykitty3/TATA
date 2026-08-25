@@ -33,7 +33,7 @@ final class PhotoService {
         size: CGSize,
         completion: @escaping (UIImage?) -> Void
     ) {
-        let cacheKey = asset.localIdentifier as NSString
+        let cacheKey = "\(asset.localIdentifier)-\(size.width)x\(size.height)" as NSString
 
         if let image = imageCache.object(forKey: cacheKey) {
             completion(image)
@@ -42,6 +42,7 @@ final class PhotoService {
 
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
+        options.resizeMode = .none
         options.isNetworkAccessAllowed = true
 
         manager.requestImage(

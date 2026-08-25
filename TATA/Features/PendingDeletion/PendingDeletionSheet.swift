@@ -1,6 +1,13 @@
 import SwiftUI
 import Photos
 
+enum PendingDeletionLayout {
+    static let buttonBottomInset: CGFloat = 58
+    static let reservedBottomInset: CGFloat = 102
+    static let gridSpacing: CGFloat = 2
+    static let gridTargetSize = CGSize(width: 600, height: 600)
+}
+
 struct PendingDeletionSheet: View {
     @ObservedObject
     var deletionManager: DeletionManager
@@ -11,24 +18,40 @@ struct PendingDeletionSheet: View {
     @State private var isDeleting = false
     @State private var errorMessage: String?
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 0),
-        GridItem(.flexible(), spacing: 0)
-    ]
+    private let columns = Array(
+        repeating: GridItem(
+            .flexible(),
+            spacing: PendingDeletionLayout.gridSpacing
+        ),
+        count: 3
+    )
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 0) {
+                    LazyVGrid(
+                        columns: columns,
+                        spacing: PendingDeletionLayout.gridSpacing
+                    ) {
                         ForEach(
                             deletionManager.pendingAssets,
                             id: \.localIdentifier
                         ) { asset in
-                            MediaView(asset: asset, showsPlaybackButton: true)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 150)
+                            GeometryReader { proxy in
+                                MediaView(
+                                    asset: asset,
+                                    showsPlaybackButton: true,
+                                    targetSize: PendingDeletionLayout.gridTargetSize,
+                                    contentMode: .fill
+                                )
+                                .frame(
+                                    width: proxy.size.width,
+                                    height: proxy.size.height
+                                )
                                 .clipped()
+                            }
+                            .aspectRatio(1, contentMode: .fit)
                         }
                     }
                     .padding(.vertical, 8)

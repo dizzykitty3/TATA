@@ -38,7 +38,7 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
-                .padding(.bottom, 58)
+                .padding(.bottom, PendingDeletionLayout.buttonBottomInset)
             }
         }
         .sheet(isPresented: $isShowingPendingDeletions) {

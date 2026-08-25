@@ -44,21 +44,33 @@ struct SwipeView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color(uiColor: .systemBackground)
+        GeometryReader { proxy in
+            let bottomInset = deletionManager.pendingAssets.isEmpty
+                ? 0
+                : PendingDeletionLayout.reservedBottomInset
+            let mediaHeight = max(proxy.size.height - bottomInset, 0)
 
-            if let previous = model.previous {
-                MediaView(asset: previous, showsPlaybackButton: false)
+            ZStack {
+                Color(uiColor: .systemBackground)
+
+                if let previous = model.previous {
+                    MediaView(
+                        asset: previous,
+                        showsPlaybackButton: false
+                    )
                     .id(previous.localIdentifier)
                     .opacity(
                         dragAxis == .horizontal && offset.width > 0
                             ? transitionProgress
                             : 0
                     )
-            }
+                }
 
-            if let next = model.next {
-                MediaView(asset: next, showsPlaybackButton: false)
+                if let next = model.next {
+                    MediaView(
+                        asset: next,
+                        showsPlaybackButton: false
+                    )
                     .id(next.localIdentifier)
                     .opacity(
                         dragAxis == .vertical
@@ -66,10 +78,13 @@ struct SwipeView: View {
                             ? transitionProgress
                             : 0
                     )
-            }
+                }
 
-            if let current = model.current {
-                MediaView(asset: current, showsPlaybackButton: true)
+                if let current = model.current {
+                    MediaView(
+                        asset: current,
+                        showsPlaybackButton: true
+                    )
                     .id(current.localIdentifier)
                     .background {
                         Color(uiColor: .systemBackground)
@@ -77,28 +92,37 @@ struct SwipeView: View {
                     }
                     .offset(offset)
                     .opacity(1 - transitionProgress)
-            } else {
-                ContentUnavailableView(
-                    "No Media",
-                    systemImage: "photo.on.rectangle.angled",
-                    description: Text(
-                        model.previous == nil
-                            ? "Your photo library doesn't contain any media."
-                            : "You've reached the end of your media."
+                } else {
+                    ContentUnavailableView(
+                        "No Media",
+                        systemImage: "photo.on.rectangle.angled",
+                        description: Text(
+                            model.previous == nil
+                                ? "Your photo library doesn't contain any media."
+                                : "You've reached the end of your media."
+                        )
                     )
-                )
-                .offset(
-                    model.previous == nil ? .zero : offset
-                )
-                .opacity(
-                    model.previous == nil
-                        ? 1
-                        : 1 - transitionProgress
-                )
+                    .offset(
+                        model.previous == nil ? .zero : offset
+                    )
+                    .opacity(
+                        model.previous == nil
+                            ? 1
+                            : 1 - transitionProgress
+                    )
+                }
             }
+            .frame(
+                width: proxy.size.width,
+                height: mediaHeight
+            )
+            .position(
+                x: proxy.size.width / 2,
+                y: mediaHeight / 2
+            )
+            .contentShape(Rectangle())
+            .gesture(dragGesture)
         }
-        .contentShape(Rectangle())
-        .gesture(dragGesture)
         .ignoresSafeArea()
     }
 
